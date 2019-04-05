@@ -1,8 +1,8 @@
 package dataStructures
 
 import (
-	"reflect"
 	"errors"
+	"reflect"
 )
 
 var typeMismatchError = errors.New("list type mismatch")
@@ -73,7 +73,7 @@ func (ll *linkedList) Pop() interface{} {
 	}
 
 	this := ll.head
-	for this.next != ll.tail {
+	for this != nil && this.next != ll.tail {
 		this = this.next
 	}
 	defer func() { ll.tail = this }()

@@ -4,13 +4,13 @@ import (
 	"../utils"
 	"../utils/dataStructures"
 	"errors"
-	"google.golang.org/genproto/googleapis/appengine/v1"
+	"neuroSnake/field"
 )
 
 type SnakeMove int8
 
 const (
-	None  SnakeMove = iota
+	None SnakeMove = iota
 	Up
 	Down
 	Left
@@ -28,11 +28,12 @@ type (
 	snake struct {
 		body     dataStructures.LinkedList
 		lastMove SnakeMove
+		field    field.Field
 	}
 
 	Snake interface {
 		Move(SnakeMove) SnakeDeadError
-		Automove() SnakeDeadError
+		AutoMove() SnakeDeadError
 		GetSnake() []utils.Dot2
 	}
 )
@@ -55,14 +56,41 @@ func deriveMove(cur utils.Dot2, move SnakeMove) utils.Dot2 {
 	return nextDot
 }
 
+// returns true if closure exists
+func (s *snake) closureCheck() bool {
+	exist := map[utils.Dot2]interface{}{}
+	for _, dot := range s.GetSnake() {
+		if _, ok := exist[dot]; ok {
+			return true
+		}
+		exist[dot] = struct{}{}
+	}
+	return false
+}
+
 func (s *snake) Move(nextMove SnakeMove) SnakeDeadError {
 	curDot := s.body.Head().(utils.Dot2)
 	nextDot := deriveMove(curDot, nextMove)
 
-	s.body.PushFront(nextDot)
+	moveRes := s.field.CheckMove(nextDot)
+
+	// we do know that nestDot is a utils.Dot2 type
+	_ := s.body.PushFront(nextDot)
+	closureExist := s.closureCheck()
+
+	switch {
+	case closureExist:
+		return EatsItself
+	case moveRes != field.GotApple:
+		s.body.Pop()
+	case moveRes == field.OutOfBorders:
+		return OutOfBorder
+	}
+
+	return nil
 }
 
-func (s *snake) Automove() SnakeDeadError {
+func (s *snake) AutoMove() SnakeDeadError {
 	return s.Move(s.lastMove)
 }
 

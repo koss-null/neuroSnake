@@ -43,9 +43,9 @@ func TestLinkedList_Pop(t *testing.T) {
 		t.Error(err)
 	}
 
-	v, err := inst.(int)
-	if err != nil {
-		t.Error(err)
+	v, ok := inst.(int)
+	if ok != true {
+		t.Error("can't convert")
 	}
 
 	if v != value {
