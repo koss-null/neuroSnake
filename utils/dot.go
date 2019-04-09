@@ -7,6 +7,6 @@ type (
 )
 
 func (dot Dot2) Eq(otherDot Dot2) bool {
-	return dot.x == otherDot.x && dot.y == otherDot.y
+	return dot.X == otherDot.X && dot.Y == otherDot.Y
 }
 

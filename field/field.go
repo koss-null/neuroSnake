@@ -2,7 +2,6 @@ package field
 
 import (
 	"math/rand"
-	"neuroSnake/snake"
 	"neuroSnake/utils"
 	"time"
 )
@@ -12,12 +11,14 @@ type (
 		Width   int
 		Height  int
 		apple   utils.Dot2
-		snk     *snake.Snake
 		randGen *rand.Rand
 	}
 
 	Field interface {
 		CheckMove(dot utils.Dot2) MoveResult
+		SetApple()
+		Apple() utils.Dot2
+		Dimensions() (int, int)
 	}
 )
 
@@ -35,35 +36,31 @@ func MakeField(w int, h int) Field {
 		panic("invalid field size")
 	}
 
-	return &field{
+	f := field{
 		Width:   w,
 		Height:  h,
 		randGen: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+	defer f.SetApple()
+	return &f
 }
 
-func (f *field) SetSnake(s *snake.Snake) {
-	f.snk = s
-}
 
 func (f *field) SetApple() {
-	exist := map[utils.Dot2]interface{}{}
-	for _, dot := range f.snk.GetSnake() {
-		exist[dot] = struct{}{}
-	}
-
 	setApple := func() {
-		f.randGen.Seed(int64(f.Width))
-		f.apple.X = int(f.randGen.Uint32())
-
-		f.randGen.Seed(int64(f.Height))
-		f.apple.Y = int(f.randGen.Uint32())
+		f.apple.X = int(f.randGen.Int31n(int32(f.Width)))
+		f.apple.Y = int(f.randGen.Int31n(int32(f.Height)))
 	}
 
 	setApple()
-	for _, ok := exist[f.apple]; ok; {
-		setApple()
-	}
+}
+
+func (f *field) Apple() utils.Dot2 {
+	return f.apple
+}
+
+func (f *field) Dimensions() (int, int) {
+	return f.Width, f.Height
 }
 
 func (f *field) CheckMove(dot utils.Dot2) MoveResult {

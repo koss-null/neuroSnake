@@ -76,7 +76,10 @@ func (ll *linkedList) Pop() interface{} {
 	for this != nil && this.next != ll.tail {
 		this = this.next
 	}
-	defer func() { ll.tail = this }()
+	defer func() {
+		ll.tail = this
+		this.next = nil
+	}()
 	return ll.tail.value
 }
 
