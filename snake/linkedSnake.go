@@ -7,23 +7,23 @@ import (
 )
 
 type snake struct {
-	body     *dataStructures.LinkedList
-	lastMove SnakeMove
-	field    *field.Field
+	body            *dataStructures.LinkedList
+	lastMove        SnakeMove
+	checkMove       *func(utils.Dot2) field.MoveResult
+	triggerAppleSet *func()
 }
-
 
 func deriveMove(cur utils.Dot2, move SnakeMove) utils.Dot2 {
 	var nextDot utils.Dot2
 	switch move {
 	case Up:
-		nextDot = utils.Dot2{cur.X - 1, cur.Y}
-	case Down:
-		nextDot = utils.Dot2{cur.X + 1, cur.Y}
-	case Left:
 		nextDot = utils.Dot2{cur.X, cur.Y - 1}
-	case Right:
+	case Down:
 		nextDot = utils.Dot2{cur.X, cur.Y + 1}
+	case Left:
+		nextDot = utils.Dot2{cur.X - 1, cur.Y}
+	case Right:
+		nextDot = utils.Dot2{cur.X + 1, cur.Y}
 	default:
 		nextDot = cur
 	}
@@ -31,18 +31,24 @@ func deriveMove(cur utils.Dot2, move SnakeMove) utils.Dot2 {
 	return nextDot
 }
 
-func MakeSnake(fld *field.Field) Snake {
+/*
+	snake need to be provided with two functions:
+	checkMove function which returns some move result depends of field parameters
+	appleSer function which triggers change of an apple position
+ */
+func MakeSnake(initDot utils.Dot2, cm *func(utils.Dot2) field.MoveResult, as *func()) Snake {
 	body := dataStructures.NewLinkedList()
-	x, y := (*fld).Dimensions()
-	err := body.PushBack(utils.Dot2{x/2, y/2})
+	err := body.PushBack(initDot)
 	if err != nil {
 		panic(err)
 	}
 
+	// fixme: Snake must start moving to a random side, not to the right
 	return &snake{
 		&body,
-		Left,
-		fld,
+		Right,
+		cm,
+		as,
 	}
 }
 
@@ -62,7 +68,7 @@ func (s *snake) Move(nextMove SnakeMove) SnakeDeadError {
 	curDot := (*s.body).Head().(utils.Dot2)
 	nextDot := deriveMove(curDot, nextMove)
 
-	moveRes := (*s.field).CheckMove(nextDot)
+	moveRes := (*s.checkMove)(nextDot)
 
 	// we do know that nestDot is a utils.Dot2 type
 	_ = (*s.body).PushFront(nextDot)
@@ -74,7 +80,7 @@ func (s *snake) Move(nextMove SnakeMove) SnakeDeadError {
 	case moveRes == field.OutOfBorders:
 		return OutOfBorder
 	case moveRes == field.GotApple:
-		(*s.field).SetApple()
+		(*s.triggerAppleSet)()
 	default:
 		(*s.body).Pop()
 	}
@@ -98,7 +104,6 @@ func (s *snake) GetSnake() []utils.Dot2 {
 	}
 	return dotSl
 }
-
 
 func (s *snake) GetSnakeMap() map[utils.Dot2]interface{} {
 	smap := map[utils.Dot2]interface{}{}

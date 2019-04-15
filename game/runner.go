@@ -67,8 +67,7 @@ func (r *runner) Run() chan interface{} {
 					}
 				}
 			}
-		}
-	}()
+		}	}()
 
 	return closer
 }
@@ -81,8 +80,9 @@ func (r *runner) Draw() {
 	defer tm.Clear()
 
 	for i := 0; i <= height; i++ {
+		fmt.Printf("%d:\t|", i)
 		for j := 0; j <= width; j++ {
-			_, isSnake := smap[utils.Dot2{i,	j}]
+			_, isSnake := smap[utils.Dot2{j,	i}]
 			switch {
 				case isSnake:
 					fmt.Print("O")
@@ -90,13 +90,12 @@ func (r *runner) Draw() {
 					fmt.Print("|")
 				case i == height:
 					fmt.Print("-")
-				case (*r.Field).Apple().Eq(utils.Dot2{i, j}):
+				case (*r.Field).Apple().Eq(utils.Dot2{j, i}):
 					fmt.Print("A")
 				default:
 					fmt.Print(" ")
 			}
 		}
-		fmt.Println()
 		fmt.Println()
 	}
 	fmt.Println((*r.Field).Apple())
