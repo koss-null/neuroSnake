@@ -1,9 +1,11 @@
-package game
+package userInput
 
 import (
+	"errors"
 	"fmt"
 	tm "github.com/buger/goterm"
 	"github.com/eiannone/keyboard"
+	"neuroSnake/controller"
 	"neuroSnake/field"
 	"neuroSnake/snake"
 	"neuroSnake/utils"
@@ -11,31 +13,25 @@ import (
 )
 
 type (
-	runner struct {
+	userInput struct {
 		speed time.Duration
 		Snake *snake.Snake
 		Field *field.Field
 	}
-
-	Runner interface {
-		Run() chan interface{}
-	}
 )
 
-func NewRunner(speed time.Duration, s *snake.Snake, f *field.Field) Runner {
-	return &runner{speed, s, f}
+func NewUserInputRunner(speed time.Duration, s *snake.Snake, f *field.Field) controller.Runner {
+	return &userInput{speed, s, f}
 }
 
-// todo: make speed depend on level
-func (r *runner) Run() chan interface{} {
-	closer := make(chan interface{}, 0)
+func (r *userInput) Run() chan error {
+	errorsBag := make(chan error, 0)
 
 	go func() {
 		for {
 			rn, _, err := keyboard.GetSingleKey()
 			if err != nil {
-				// fixme
-				// ignore
+				errorsBag <- err
 			}
 			switch rn {
 			case 'w':
@@ -47,7 +43,7 @@ func (r *runner) Run() chan interface{} {
 			case 'd':
 				(*r.Snake).SetMove(snake.Right)
 			case 'q':
-				panic("GG")
+				errorsBag <- errors.New("game finished")
 			}
 		}
 	}()
@@ -56,23 +52,25 @@ func (r *runner) Run() chan interface{} {
 	go func() {
 		for {
 			select {
-			case <-closer:
+			case cash := <-errorsBag:
+				errorsBag <- cash
 				return
 			case <-ticker.C:
 				{
 					err := (*r.Snake).AutoMove()
 					r.Draw()
 					if err != nil {
-						panic(err)
+						errorsBag <- err
 					}
 				}
 			}
-		}	}()
+		}
+	}()
 
-	return closer
+	return errorsBag
 }
 
-func (r *runner) Draw() {
+func (r *userInput) Draw() {
 	width, height := (*r.Field).Dimensions()
 	smap := (*r.Snake).GetSnakeMap()
 
@@ -82,18 +80,18 @@ func (r *runner) Draw() {
 	for i := 0; i <= height; i++ {
 		fmt.Printf("%d:\t|", i)
 		for j := 0; j <= width; j++ {
-			_, isSnake := smap[utils.Dot2{j,	i}]
+			_, isSnake := smap[utils.Dot2{j, i}]
 			switch {
-				case isSnake:
-					fmt.Print("O")
-				case j == width:
-					fmt.Print("|")
-				case i == height:
-					fmt.Print("-")
-				case (*r.Field).Apple().Eq(utils.Dot2{j, i}):
-					fmt.Print("A")
-				default:
-					fmt.Print(" ")
+			case isSnake:
+				fmt.Print("O")
+			case j == width:
+				fmt.Print("|")
+			case i == height:
+				fmt.Print("-")
+			case (*r.Field).Apple().Eq(utils.Dot2{j, i}):
+				fmt.Print("A")
+			default:
+				fmt.Print(" ")
 			}
 		}
 		fmt.Println()
